@@ -1,9 +1,12 @@
 import json
 
 from flask import Blueprint, request, jsonify
+from sqlalchemy.exc import NoResultFound
+
 from repository import ProductRepository
 from model import Product, ProductDetails
-from schema import ProductSchema, ProductDetailsSchema
+from schema import ProductSchema
+from exception import ServiceException
 
 products_api = Blueprint('products_api', __name__)
 
@@ -34,10 +37,8 @@ def create_product():
         for product_details_json in product_json.get('product_details_list'):
             product_details = ProductDetails(product_details_json.get("description"), product_details_json.get("size"))
             product.product_details_list.append(product_details)
-            # db.session.add(product_details)
 
     product_created = ProductRepository.create(product)
-    product_details_list = product_created.product_details_list
     return jsonify({"product": product_created.to_dict()})
 
 
@@ -48,3 +49,22 @@ def update_product():
     product.product_color = product_json.get('product_color')
     product_saved = product.save()
     return jsonify({"product": product_saved.json})
+
+
+@products_api.route('/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        product = Product.query.filter_by(id=product_id).one()
+        if product is None:
+            raise ServiceException("Product not available with given id", 500)
+    except NoResultFound:
+        raise ServiceException("Product not available with given id", 500)
+    product.delete()
+    return jsonify({"status": "Deleted"})
+
+
+@products_api.errorhandler(ServiceException)
+def handle_service_exception(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
