@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, request, jsonify
 from repository import ProductRepository
 from model import Product, ProductDetails
+from schema import ProductSchema, ProductDetailsSchema
 
 products_api = Blueprint('products_api', __name__)
 
@@ -10,14 +11,17 @@ products_api = Blueprint('products_api', __name__)
 @products_api.route('/', methods=['GET'])
 def get_all():
     products = Product.query.all()
-    lists = list(map(lambda l: l.to_dict(), products))
-    return jsonify({"products": lists})
+    product_schema = ProductSchema()
+    results = product_schema.dump(products, many=True)
+    return jsonify({"products": results})
 
 
 @products_api.route('/<int:product_id>', methods=['GET'])
 def get(product_id):
     product = Product.query.filter_by(id=product_id).one()
-    return jsonify({"product": product.to_dict()})
+    product_schema = ProductSchema()
+    result = product_schema.dump(product)
+    return jsonify({"product": result})
 
 
 @products_api.route('/', methods=['PUT'])

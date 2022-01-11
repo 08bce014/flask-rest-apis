@@ -4,4 +4,3 @@ db = SQLAlchemy()
 
 from .product import Product
 from .product import ProductDetails
-from .product import ComplexEncoder
